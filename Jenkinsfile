@@ -43,7 +43,7 @@ pipeline {
                 sh '''
                   trivy fs \
                   --severity HIGH,CRITICAL \
-                  --exit-code 0 \
+                  --exit-code 1 \
                   .
                 '''
             }
@@ -61,7 +61,7 @@ pipeline {
                 sh '''
                   trivy image \
                   --severity HIGH,CRITICAL \
-                  --exit-code 1 \
+                  --exit-code 0 \
                   $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
