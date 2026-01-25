@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  flask-blog:
+    image: shankar0804/flask-blog:latest
+    container_name: flask-blog
+    restart: always
+
+    ports:
+      - "8000:5000"
+
