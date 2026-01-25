@@ -21,8 +21,8 @@ pipeline {
             steps {
                 withSonarQubeEnv('Sonar') {
                     sh """
-                        $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                         -Dsonar.sources=.
                     """
                 }
@@ -37,9 +37,33 @@ pipeline {
             }
         }
 
+        stage('Trivy FS Scan') {
+            steps {
+                echo "Running Trivy filesystem scan..."
+                sh '''
+                  trivy fs \
+                  --severity HIGH,CRITICAL \
+                  --exit-code 1 \
+                  .
+                '''
+            }
+        }
+
         stage('Build Image') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                echo "Running Trivy Docker image scan..."
+                sh '''
+                  trivy image \
+                  --severity HIGH,CRITICAL \
+                  --exit-code 1 \
+                  $IMAGE_NAME:$IMAGE_TAG
+                '''
             }
         }
 
