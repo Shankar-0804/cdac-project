@@ -37,6 +37,19 @@ pipeline {
             }
         }
 
+        stage('OWASP Dependency Check') {
+            steps {
+                dependencyCheck additionalArguments: '''
+                    --scan .
+                    --format HTML
+                    --failOnCVSS 11
+                ''',
+                odcInstallation: 'OWASP'
+
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+
         stage('Trivy FS Scan') {
             steps {
                 echo "Running Trivy filesystem scan..."
@@ -92,3 +105,4 @@ pipeline {
         }
     }
 }
+
