@@ -2,14 +2,38 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "shankar0804/flask-blog"
-        IMAGE_TAG = "latest"
+        IMAGE_NAME        = "shankar0804/flask-blog"
+        IMAGE_TAG         = "latest"
+        SONAR_PROJECT_KEY = "flask-blog"
+        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Shankar-0804/cdac-project.git'
+                git branch: 'main',
+                    url: 'https://github.com/Shankar-0804/cdac-project.git'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('Sonar') {
+                    sh """
+                        $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                        -Dsonar.sources=.
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
