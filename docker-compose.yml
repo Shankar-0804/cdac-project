@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   flask-blog:
     image: shankar0804/flask-blog:latest
