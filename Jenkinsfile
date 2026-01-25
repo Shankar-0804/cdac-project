@@ -5,7 +5,6 @@ pipeline {
         IMAGE_NAME        = "shankar0804/flask-blog"
         IMAGE_TAG         = "latest"
         SONAR_PROJECT_KEY = "flask-blog"
-        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
