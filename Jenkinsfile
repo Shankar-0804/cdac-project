@@ -44,7 +44,7 @@ pipeline {
                     --format HTML
                     --failOnCVSS 11
                 ''',
-                odcInstallation: 'OWASP'
+                odcInstallation: 'dc'
 
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
