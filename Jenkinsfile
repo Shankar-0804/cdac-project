@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME        = "shankar0804/flask-blog"
-        IMAGE_TAG         = "latest"
+        IMAGE_TAG         = "${BUILD_NUMBER}"
         SONAR_PROJECT_KEY = "flask-blog"
         SCANNER_HOME      = tool 'Sonar'
     }
@@ -98,6 +98,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
+                  echo "IMAGE_NAME=$IMAGE_NAME" > .env
+                  echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+
                   docker compose pull
                   docker compose up -d --force-recreate
                 '''
