@@ -61,7 +61,6 @@ pipeline {
         stage('Build Image') {
             steps {
                 sh '''
-                  echo "Building image: $IMAGE_NAME:$IMAGE_TAG"
                   docker build -t $IMAGE_NAME:$IMAGE_TAG .
                 '''
             }
@@ -88,21 +87,6 @@ pipeline {
                       docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
-            }
-        }
-
-        stage('Debug Verify Pushed Image') {
-            steps {
-                sh '''
-                  echo "============= POST-PUSH DEBUG ============="
-                  echo "BUILD_NUMBER : $BUILD_NUMBER"
-                  echo "IMAGE_NAME   : $IMAGE_NAME"
-                  echo "IMAGE_TAG    : $IMAGE_TAG"
-                  echo ""
-                  echo "Local Docker images:"
-                  docker images | grep flask-blog || true
-                  echo "=========================================="
-                '''
             }
         }
 
