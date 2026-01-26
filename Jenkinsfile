@@ -45,6 +45,7 @@ pipeline {
                     --failOnCVSS 11
                 ''',
                 odcInstallation: 'dc'
+
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
@@ -59,7 +60,10 @@ pipeline {
 
         stage('Build Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                sh '''
+                  echo "Building image: $IMAGE_NAME:$IMAGE_TAG"
+                  docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                '''
             }
         }
 
@@ -80,14 +84,14 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                       docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
         }
 
-        🔍 stage('Debug – Verify Pushed Image') {
+        stage('Debug Verify Pushed Image') {
             steps {
                 sh '''
                   echo "============= POST-PUSH DEBUG ============="
@@ -115,4 +119,3 @@ pipeline {
         }
     }
 }
-
