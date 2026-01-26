@@ -45,19 +45,14 @@ pipeline {
                     --failOnCVSS 11
                 ''',
                 odcInstallation: 'dc'
-
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
 
         stage('Trivy FS Scan') {
             steps {
-                echo "Running Trivy filesystem scan..."
                 sh '''
-                  trivy fs \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 1 \
-                  .
+                  trivy fs --severity HIGH,CRITICAL --exit-code 1 .
                 '''
             }
         }
@@ -70,11 +65,8 @@ pipeline {
 
         stage('Trivy Image Scan') {
             steps {
-                echo "Running Trivy Docker image scan..."
                 sh '''
-                  trivy image \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 0 \
+                  trivy image --severity HIGH,CRITICAL --exit-code 0 \
                   $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
@@ -92,6 +84,21 @@ pipeline {
                       docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
+            }
+        }
+
+        🔍 stage('Debug – Verify Pushed Image') {
+            steps {
+                sh '''
+                  echo "============= POST-PUSH DEBUG ============="
+                  echo "BUILD_NUMBER : $BUILD_NUMBER"
+                  echo "IMAGE_NAME   : $IMAGE_NAME"
+                  echo "IMAGE_TAG    : $IMAGE_TAG"
+                  echo ""
+                  echo "Local Docker images:"
+                  docker images | grep flask-blog || true
+                  echo "=========================================="
+                '''
             }
         }
 
