@@ -1,9 +1,10 @@
 services:
   flask-blog:
-    image: shankar0804/flask-blog:latest
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
     container_name: flask-blog
     restart: always
 
     ports:
       - "8000:5000"
+
 
