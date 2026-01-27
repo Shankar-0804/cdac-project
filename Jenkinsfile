@@ -43,7 +43,7 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             agent { label 'security-agent' }
-            tools { dependencyCheck 'dc' }
+            tools { 'dependencyCheck' 'dc' }
             steps {
                 dependencyCheck additionalArguments: '''
                     --scan .
