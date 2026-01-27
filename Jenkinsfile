@@ -5,7 +5,6 @@ pipeline {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
         IMAGE_TAG         = "${BUILD_NUMBER}"
         SONAR_PROJECT_KEY = "flask-blog"
-        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
@@ -22,12 +21,15 @@ pipeline {
         stage('SonarQube Analysis') {
             agent { label 'security-agent' }
             steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.sources=.
-                    """
+                script {
+                    def SCANNER_HOME = tool 'sonar-scanner'
+                    withSonarQubeEnv('sonar-server') {
+                        sh """
+                            ${SCANNER_HOME}/bin/sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=.
+                        """
+                    }
                 }
             }
         }
@@ -113,3 +115,4 @@ pipeline {
         }
     }
 }
+
