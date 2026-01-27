@@ -1,16 +1,16 @@
 pipeline {
-    agent any
+    agent none  // All stages specify their own agent
 
     environment {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
         IMAGE_TAG         = "${BUILD_NUMBER}"
         SONAR_PROJECT_KEY = "flask-blog"
-        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
 
         stage('Checkout') {
+            agent any
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Shankar-0804/cdac-project.git'
@@ -18,18 +18,23 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            agent { label 'security-agent' }
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.sources=.
-                    """
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=.
+                        """
+                    }
                 }
             }
         }
 
         stage('Quality Gate') {
+            agent { label 'security-agent' }
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: false
@@ -38,19 +43,24 @@ pipeline {
         }
 
         stage('OWASP Dependency Check') {
+            agent { label '' }  
             steps {
-                dependencyCheck additionalArguments: '''
-                    --scan .
-                    --format HTML
-                    --failOnCVSS 11
-                ''',
-                odcInstallation: 'dc'
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    dependencyCheck additionalArguments: """
+                        --scan .
+                        --format HTML
+                        --failOnCVSS 11
+                        --nvdApiKey $NVD_API_KEY
+                    """,
+                    odcInstallation: 'dc'
 
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
             }
         }
 
         stage('Trivy FS Scan') {
+            agent { label 'security-agent' }
             steps {
                 sh '''
                   trivy fs --severity HIGH,CRITICAL --exit-code 1 .
@@ -59,6 +69,7 @@ pipeline {
         }
 
         stage('Build Image') {
+            agent { label 'docker-agent' }
             steps {
                 sh '''
                   docker build -t $IMAGE_NAME:$IMAGE_TAG .
@@ -67,6 +78,7 @@ pipeline {
         }
 
         stage('Trivy Image Scan') {
+            agent { label 'docker-agent' }
             steps {
                 sh '''
                   trivy image --severity HIGH,CRITICAL --exit-code 0 \
@@ -76,6 +88,7 @@ pipeline {
         }
 
         stage('Push Image') {
+            agent { label 'docker-agent' }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-hub',
@@ -91,6 +104,7 @@ pipeline {
         }
 
         stage('Deploy') {
+            agent { label 'docker-agent' }
             steps {
                 sh '''
                   echo "IMAGE_NAME=$IMAGE_NAME" > .env
