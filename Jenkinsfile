@@ -5,6 +5,7 @@ pipeline {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
         IMAGE_TAG         = "${BUILD_NUMBER}"
         SONAR_PROJECT_KEY = "flask-blog"
+        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
@@ -20,20 +21,14 @@ pipeline {
 
         stage('SonarQube Analysis') {
             agent { label 'security-agent' }
-            environment {
-                SONAR_TOKEN = credentials('sonar-qube') // Jenkins Secret Text credential
-            }
             steps {
-                script {
-                    def SCANNER_HOME = tool 'sonar-scanner'
-                    withSonarQubeEnv('sonar-server') {
-                        sh """
-                            ${SCANNER_HOME}/bin/sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=. \
-                            -Dsonar.login=${SONAR_TOKEN}
-                        """
-                    }
+                unstash 'source-code'
+                withSonarQubeEnv('sonar-server') {
+                    sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.sources=.
+                    """
                 }
             }
         }
@@ -41,10 +36,8 @@ pipeline {
         stage('Quality Gate') {
             agent { label 'security-agent' }
             steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    retry(2) {
-                        waitForQualityGate abortPipeline: false
-                    }
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }
@@ -52,9 +45,10 @@ pipeline {
         stage('OWASP Dependency Check') {
             agent { label 'security-agent' }
             steps {
+                unstash 'source-code'
                 dependencyCheck additionalArguments: '''
-                    --scan . 
-                    --format HTML 
+                    --scan .
+                    --format HTML
                     --failOnCVSS 11
                 ''', odcInstallation: 'dc'
 
@@ -65,6 +59,7 @@ pipeline {
         stage('Trivy FS Scan') {
             agent { label 'security-agent' }
             steps {
+                unstash 'source-code'
                 sh '''
                   trivy fs --severity HIGH,CRITICAL --exit-code 1 .
                 '''
@@ -110,13 +105,17 @@ pipeline {
         stage('Deploy') {
             agent { label 'docker-agent' }
             steps {
+                unstash 'source-code'
                 sh '''
                   echo "IMAGE_NAME=$IMAGE_NAME" > .env
                   echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+
                   docker compose pull
                   docker compose up -d --force-recreate
                 '''
             }
         }
+
     }
 }
+
