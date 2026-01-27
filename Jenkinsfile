@@ -42,7 +42,7 @@ pipeline {
             agent { label 'security-agent' }
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
