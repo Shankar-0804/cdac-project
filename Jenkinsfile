@@ -23,12 +23,12 @@ pipeline {
             steps {
                 unstash 'source-code'
                 script {
-                    def SCANNER_HOME = tool 'sonar-scanner'
+                    def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('sonar-server') {
                         sh """
-                            ${SCANNER_HOME}/bin/sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=.
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.sources=.
                         """
                     }
                 }
@@ -39,16 +39,19 @@ pipeline {
             agent { label 'security-agent' }
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('OWASP Dependency Check') {
-            agent { label 'security-agent' } // run on security agent
+            agent { label 'security-agent' }
             steps {
                 unstash 'source-code'
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                withCredentials([string(
+                    credentialsId: 'nvd-api-key',
+                    variable: 'NVD_API_KEY'
+                )]) {
                     sh '''
                     dependency-check.sh \
                       --project "flask-blog" \
@@ -68,7 +71,7 @@ pipeline {
             steps {
                 unstash 'source-code'
                 sh '''
-                  trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+                trivy fs --severity HIGH,CRITICAL --exit-code 1 .
                 '''
             }
         }
@@ -78,7 +81,7 @@ pipeline {
             steps {
                 unstash 'source-code'
                 sh '''
-                  docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                docker build -t $IMAGE_NAME:$IMAGE_TAG .
                 '''
             }
         }
@@ -87,8 +90,7 @@ pipeline {
             agent { label 'security-agent' }
             steps {
                 sh '''
-                  trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                  $IMAGE_NAME:$IMAGE_TAG
+                trivy image --severity HIGH,CRITICAL --exit-code 0 $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
@@ -102,8 +104,8 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker push $IMAGE_NAME:$IMAGE_TAG
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
@@ -112,16 +114,13 @@ pipeline {
         stage('Deploy') {
             agent { label 'docker-agent' }
             steps {
-                unstash 'source-code'
                 sh '''
-                  echo "IMAGE_NAME=$IMAGE_NAME" > .env
-                  echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-
-                  docker compose pull
-                  docker compose up -d --force-recreate
+                echo "IMAGE_NAME=$IMAGE_NAME" > .env
+                echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+                docker compose pull
+                docker compose up -d --force-recreate
                 '''
             }
         }
-
     }
 }
