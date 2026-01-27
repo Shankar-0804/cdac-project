@@ -45,16 +45,21 @@ pipeline {
         }
 
         stage('OWASP Dependency Check') {
-            agent { label '' } // Runs on master
+            agent { label 'security-agent' } // run on security agent
             steps {
                 unstash 'source-code'
-                dependencyCheck additionalArguments: '''
-                    --scan .
-                    --format HTML
-                    --failOnCVSS 11
-                ''', odcInstallation: 'dc'
-
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    sh '''
+                    dependency-check.sh \
+                      --project "flask-blog" \
+                      --scan . \
+                      --format HTML \
+                      --out dependency-check-report \
+                      --nvdApiKey $NVD_API_KEY \
+                      --failOnCVSS 7
+                    '''
+                }
+                archiveArtifacts artifacts: 'dependency-check-report/**', fingerprint: true
             }
         }
 
