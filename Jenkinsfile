@@ -38,8 +38,10 @@ pipeline {
         stage('Quality Gate') {
             agent { label 'security-agent' }
             steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                withSonarQubeEnv('sonar-server') {
+                    timeout(time: 15, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
+                    }
                 }
             }
         }
