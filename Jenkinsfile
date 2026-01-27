@@ -43,13 +43,13 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             agent { label 'security-agent' }
-            tools { 'dependencyCheck' 'dc' }
             steps {
                 dependencyCheck additionalArguments: '''
                     --scan .
                     --format HTML
                     --failOnCVSS 11
                 ''', odcInstallation: 'dc'
+                
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
