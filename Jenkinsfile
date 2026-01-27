@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME        = "shankar0804/flask-blog"
+        IMAGE_NAME        = "shankar0804/flask-blog-app"
         IMAGE_TAG         = "${BUILD_NUMBER}"
         SONAR_PROJECT_KEY = "flask-blog"
-        SCANNER_HOME      = tool 'Sonar'
+        SCANNER_HOME      = tool 'sonar-scanner'
     }
 
     stages {
@@ -19,7 +19,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('Sonar') {
+                withSonarQubeEnv('sonar-server') {
                     sh """
                         ${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -78,7 +78,7 @@ pipeline {
         stage('Push Image') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
+                    credentialsId: 'docker-hub',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
