@@ -21,17 +21,19 @@ pipeline {
         stage('SonarQube Analysis') {
             agent { label 'security-agent' }
             environment {
-                SONAR_TOKEN = credentials('sonar-token') // Jenkins Secret Text credential ID
-                SCANNER_HOME = tool 'sonar-scanner'
+                SONAR_TOKEN = credentials('sonar-token') // Jenkins Secret Text credential
             }
             steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.sources=. \
-                        -Dsonar.login=${SONAR_TOKEN}
-                    """
+                script {
+                    def SCANNER_HOME = tool 'sonar-scanner'
+                    withSonarQubeEnv('sonar-server') {
+                        sh """
+                            ${SCANNER_HOME}/bin/sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=. \
+                            -Dsonar.login=${SONAR_TOKEN}
+                        """
+                    }
                 }
             }
         }
@@ -49,13 +51,13 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             agent { label 'security-agent' }
-            tools { dependencyCheck 'dc' } // Ensure Jenkins Dependency-Check tool is installed
             steps {
                 dependencyCheck additionalArguments: '''
-                    --scan .
-                    --format HTML
+                    --scan . 
+                    --format HTML 
                     --failOnCVSS 11
                 ''', odcInstallation: 'dc'
+
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
@@ -64,17 +66,17 @@ pipeline {
             agent { label 'security-agent' }
             steps {
                 sh '''
-                    trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+                  trivy fs --severity HIGH,CRITICAL --exit-code 1 .
                 '''
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Image') {
             agent { label 'docker-agent' }
             steps {
                 unstash 'source-code'
                 sh '''
-                    docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                  docker build -t $IMAGE_NAME:$IMAGE_TAG .
                 '''
             }
         }
@@ -83,13 +85,13 @@ pipeline {
             agent { label 'security-agent' }
             steps {
                 sh '''
-                    trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                    $IMAGE_NAME:$IMAGE_TAG
+                  trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                  $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Image') {
             agent { label 'docker-agent' }
             steps {
                 withCredentials([usernamePassword(
@@ -98,8 +100,8 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $IMAGE_NAME:$IMAGE_TAG
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push $IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
@@ -109,10 +111,10 @@ pipeline {
             agent { label 'docker-agent' }
             steps {
                 sh '''
-                    echo "IMAGE_NAME=$IMAGE_NAME" > .env
-                    echo "IMAGE_TAG=$IMAGE_TAG" >> .env
-                    docker compose pull
-                    docker compose up -d --force-recreate
+                  echo "IMAGE_NAME=$IMAGE_NAME" > .env
+                  echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+                  docker compose pull
+                  docker compose up -d --force-recreate
                 '''
             }
         }
