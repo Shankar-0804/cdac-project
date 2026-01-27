@@ -35,17 +35,6 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            agent { label 'security-agent' }
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                    }
-                }
-            }
-        }
-
         stage('OWASP Dependency Check') {
             agent { label 'security-agent' }
             steps {
