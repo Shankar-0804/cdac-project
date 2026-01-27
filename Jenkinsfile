@@ -45,7 +45,7 @@ pipeline {
         }
 
         stage('OWASP Dependency Check') {
-            agent { label 'master' } // Runs on master
+            agent { label '' } // Runs on master
             steps {
                 unstash 'source-code'
                 dependencyCheck additionalArguments: '''
