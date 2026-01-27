@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent none
 
     environment {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
@@ -11,13 +11,16 @@ pipeline {
     stages {
 
         stage('Checkout') {
+            agent { label 'security-agent' }
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Shankar-0804/cdac-project.git'
+                stash name: 'source-code', includes: '**'
             }
         }
 
         stage('SonarQube Analysis') {
+            agent { label 'security-agent' }
             steps {
                 withSonarQubeEnv('sonar-server') {
                     sh """
@@ -30,6 +33,7 @@ pipeline {
         }
 
         stage('Quality Gate') {
+            agent { label 'security-agent' }
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: false
@@ -38,19 +42,20 @@ pipeline {
         }
 
         stage('OWASP Dependency Check') {
+            agent { label 'security-agent' }
+            tools { dependencyCheck 'dc' }
             steps {
                 dependencyCheck additionalArguments: '''
                     --scan .
                     --format HTML
                     --failOnCVSS 11
-                ''',
-                odcInstallation: 'dc'
-
+                ''', odcInstallation: 'dc'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
 
         stage('Trivy FS Scan') {
+            agent { label 'security-agent' }
             steps {
                 sh '''
                   trivy fs --severity HIGH,CRITICAL --exit-code 1 .
@@ -59,7 +64,9 @@ pipeline {
         }
 
         stage('Build Image') {
+            agent { label 'docker-agent' }
             steps {
+                unstash 'source-code'
                 sh '''
                   docker build -t $IMAGE_NAME:$IMAGE_TAG .
                 '''
@@ -67,6 +74,7 @@ pipeline {
         }
 
         stage('Trivy Image Scan') {
+            agent { label 'security-agent' }
             steps {
                 sh '''
                   trivy image --severity HIGH,CRITICAL --exit-code 0 \
@@ -76,6 +84,7 @@ pipeline {
         }
 
         stage('Push Image') {
+            agent { label 'docker-agent' }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-hub',
@@ -91,6 +100,7 @@ pipeline {
         }
 
         stage('Deploy') {
+            agent { label 'docker-agent' }
             steps {
                 sh '''
                   echo "IMAGE_NAME=$IMAGE_NAME" > .env
