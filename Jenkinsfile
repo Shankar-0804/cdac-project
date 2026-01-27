@@ -10,7 +10,7 @@ pipeline {
     stages {
 
         stage('Checkout') {
-            agent any
+            agent { label 'security-agent' }
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Shankar-0804/cdac-project.git'
