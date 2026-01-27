@@ -21,7 +21,7 @@ pipeline {
         stage('SonarQube Analysis') {
             agent { label 'security-agent' }
             environment {
-                SONAR_TOKEN = credentials('sonar-token') // Jenkins Secret Text credential
+                SONAR_TOKEN = credentials('sonar-qube') // Jenkins Secret Text credential
             }
             steps {
                 script {
@@ -41,7 +41,7 @@ pipeline {
         stage('Quality Gate') {
             agent { label 'security-agent' }
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
+                timeout(time: 15, unit: 'MINUTES') {
                     retry(2) {
                         waitForQualityGate abortPipeline: false
                     }
