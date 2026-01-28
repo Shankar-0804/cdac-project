@@ -96,6 +96,8 @@ pipeline {
         }
 
         stage('Deploy') {
+            agent { label 'docker-agent' }
+
             steps {
                 sh '''
                     echo "IMAGE_NAME=$IMAGE_NAME" > .env
