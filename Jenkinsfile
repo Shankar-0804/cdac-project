@@ -39,22 +39,6 @@ pipeline {
             }
         }
 
-        stage('OWASP Dependency Check') {
-            steps {
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                    dependencyCheck additionalArguments: """
-                        --scan .
-                        --format HTML
-                        --failOnCVSS 11
-                        --nvdApiKey ${NVD_API_KEY}
-                    """,
-                    odcInstallation: 'dc'
-
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
-
         stage('Trivy FS Scan') {
             steps {
                 sh '''
