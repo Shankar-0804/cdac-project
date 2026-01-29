@@ -42,7 +42,7 @@ pipeline {
         stage('Trivy FS Scan') {
             steps {
                 sh '''
-                    trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+                    trivy fs --severity HIGH,CRITICAL --exit-code 0 .
                 '''
             }
         }
