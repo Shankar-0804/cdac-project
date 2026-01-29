@@ -1,5 +1,5 @@
 pipeline {
-    agent any  // all stages run on built-in node by default
+    agent any
 
     environment {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
@@ -42,7 +42,12 @@ pipeline {
         stage('Trivy FS Scan') {
             steps {
                 sh '''
-                    /usr/bin/trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+                    docker run --rm \
+                      -v $(pwd):/project \
+                      aquasec/trivy:latest fs \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      /project
                 '''
             }
         }
@@ -58,8 +63,12 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                        $IMAGE_NAME:$IMAGE_TAG
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      aquasec/trivy:latest image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 0 \
+                      $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
@@ -80,8 +89,7 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent { label 'docker-ec2' } // ONLY this stage runs on docker-ec2
-
+            agent { label 'docker-ec2' }
             steps {
                 sh '''
                     echo "IMAGE_NAME=$IMAGE_NAME" > .env
