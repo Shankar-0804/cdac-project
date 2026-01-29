@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'security-agent' }
+    agent any  // all stages run on built-in node by default
 
     environment {
         IMAGE_NAME        = "shankar0804/flask-blog-app"
@@ -80,7 +80,7 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent { label 'docker-agent' }
+            agent { label 'docker-ec2' } // ONLY this stage runs on docker-ec2
 
             steps {
                 sh '''
